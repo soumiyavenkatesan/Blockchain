@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Yield Optimizer DApp</title>
+  </head>
+  <body>
+    <h1>Yield Optimizer Vault</h1>
+
+    <p>Connect your wallet and interact:</p>
+
+    <button onclick="connectWallet()">Connect Wallet</button><br><br>
+
+    <input id="amount" placeholder="Amount to deposit" />
+    <button onclick="deposit()">Deposit</button>
+
+    <button onclick="withdraw()">Withdraw</button>
+
+    <p id="status"></p>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
