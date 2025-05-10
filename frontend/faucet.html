@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Token Faucet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Token Faucet</h1>
+
+      <p>Get test tokens for the Yield Optimizer DApp</p>
+
+      <button id="connect-btn">Connect Wallet</button>
+
+      <div id="faucet-section" style="display: none; margin-top: 20px;">
+        <p>Your address: <span id="user-address">Not connected</span></p>
+        <p>Current balance: <span id="token-balance">0</span> TST</p>
+
+        <button id="mint-btn">Get 1000 Test Tokens</button>
+      </div>
+
+      <p id="status"></p>
+
+      <div class="back-button" style="margin-top: 20px;">
+        <a href="index.html"><button>Back to App</button></a>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const connectBtn = document.getElementById('connect-btn');
+        const mintBtn = document.getElementById('mint-btn');
+        const statusEl = document.getElementById('status');
+        const userAddressEl = document.getElementById('user-address');
+        const tokenBalanceEl = document.getElementById('token-balance');
+        const faucetSection = document.getElementById('faucet-section');
+
+        // Contract addresses from Hardhat node
+        // This address is from the default Hardhat deployment
+        const tokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'; // First deployed contract
+
+        // Minimal ABI
+        const tokenAbi = [
+          "function balanceOf(address) view returns (uint256)",
+          "function transfer(address, uint256) returns (bool)"
+        ];
+
+        // Global variables
+        let provider;
+        let signer;
+        let token;
+        let userAddress;
+
+        // Connect wallet function
+        async function connectWallet() {
+          updateStatus('Connecting wallet...', 'loading');
+
+          try {
+            // Check if MetaMask is installed
+            if (!window.ethereum) {
+              updateStatus('Please install MetaMask', 'error');
+              return;
+            }
+
+            // Request accounts
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            if (accounts.length === 0) {
+              updateStatus('No accounts found in MetaMask', 'error');
+              return;
+            }
+
+            // SKIP CHAIN ID CHECK - Allow any network to connect
+            console.log('Skipping chain ID check - allowing any network to connect');
+
+            // Just log the chain ID for debugging purposes
+            try {
+              const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+              console.log('Connected to chain ID:', chainId, 'Decimal:', parseInt(chainId, 16));
+            } catch (error) {
+              console.error('Error getting chain ID:', error);
+            }
+
+            // Setup provider and signer
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            userAddress = await signer.getAddress();
+
+            console.log('Connected to wallet:', userAddress);
+
+            // Initialize token contract
+            token = new ethers.Contract(tokenAddress, tokenAbi, signer);
+
+            // Update UI
+            userAddressEl.textContent = userAddress;
+            faucetSection.style.display = 'block';
+
+            // Get token balance
+            await updateBalance();
+
+            updateStatus('Connected successfully', 'connected');
+
+            // Listen for account changes
+            window.ethereum.on('accountsChanged', () => {
+              window.location.reload();
+            });
+
+            // Listen for network changes
+            window.ethereum.on('chainChanged', () => {
+              window.location.reload();
+            });
+          } catch (err) {
+            console.error('Wallet connection error:', err);
+            updateStatus('Failed to connect wallet: ' + (err.reason || err.message || 'Unknown error'), 'error');
+          }
+        }
+
+        // Update token balance
+        async function updateBalance() {
+          try {
+            const balance = await token.balanceOf(userAddress);
+            const formattedBalance = ethers.formatUnits(balance, 18);
+            tokenBalanceEl.textContent = formattedBalance;
+          } catch (err) {
+            console.error('Error getting balance:', err);
+            tokenBalanceEl.textContent = 'Error';
+          }
+        }
+
+        // Mint tokens function
+        async function mintTokens() {
+          updateStatus('Minting tokens...', 'loading');
+
+          try {
+            // We need to use the first account (deployer) to mint tokens
+            // This is a hack for the faucet - in a real app, you'd have a backend service
+            const deployerPrivateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+            const deployerWallet = new ethers.Wallet(deployerPrivateKey, provider);
+            const deployerToken = new ethers.Contract(tokenAddress, tokenAbi, deployerWallet);
+
+            // Transfer 1000 tokens to the user
+            const amount = ethers.parseUnits('1000', 18);
+            const tx = await deployerToken.transfer(userAddress, amount);
+            await tx.wait();
+
+            // Update balance
+            await updateBalance();
+
+            updateStatus('Successfully minted 1000 tokens!', 'connected');
+          } catch (err) {
+            console.error('Minting error:', err);
+            updateStatus('Failed to mint tokens: ' + (err.reason || err.message || 'Unknown error'), 'error');
+          }
+        }
+
+        // Helper function to update status with styling
+        function updateStatus(message, type = '') {
+          statusEl.innerText = message;
+
+          // Remove all status classes
+          statusEl.classList.remove('loading', 'connected', 'error');
+
+          // Add the appropriate class
+          if (type) {
+            statusEl.classList.add(type);
+          }
+        }
+
+        // Add event listeners
+        connectBtn.addEventListener('click', connectWallet);
+        mintBtn.addEventListener('click', mintTokens);
+
+        // Check if MetaMask is installed
+        if (window.ethereum) {
+          updateStatus('Ready to connect wallet', '');
+        } else {
+          updateStatus('Please install MetaMask', 'error');
+        }
+      });
+    </script>
+  </body>
+</html>

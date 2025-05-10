@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "setup": "setup.bat",
+    "node": "npx hardhat node",
+    "deploy": "npx hardhat run scripts/deploy-and-setup.js --network localhost"
   },
   "keywords": [],
   "author": "",

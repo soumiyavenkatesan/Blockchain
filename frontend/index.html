@@ -2,20 +2,153 @@
 <html>
   <head>
     <title>Yield Optimizer DApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   </head>
   <body>
-    <h1>Yield Optimizer Vault</h1>
+    <div class="app-container">
+      <!-- Navigation -->
+      <nav class="app-nav">
+        <div class="nav-logo">
+          <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M16 12l-4-4-4 4"></path>
+            <path d="M12 16V8"></path>
+          </svg>
+          <span>YieldVault</span>
+        </div>
+        <div class="nav-menu">
+          <button class="nav-item active" data-screen="home">
+            <i class="fas fa-home"></i> Home
+          </button>
+          <button class="nav-item" data-screen="dashboard">
+            <i class="fas fa-chart-line"></i> Dashboard
+          </button>
+          <button class="nav-item" data-screen="transactions">
+            <i class="fas fa-exchange-alt"></i> Transactions
+          </button>
+        </div>
+        <div class="wallet-status">
+          <span id="wallet-address">Not connected</span>
+          <button id="connect-btn" class="connect-button">
+            <i class="fas fa-wallet"></i> Connect
+          </button>
+        </div>
+      </nav>
 
-    <p>Connect your wallet and interact:</p>
+      <!-- Main Content Area -->
+      <main class="app-content">
+        <!-- Welcome Screen (Default) -->
+        <div class="screen active" id="home-screen">
+          <div class="container">
+            <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M16 12l-4-4-4 4"></path>
+              <path d="M12 16V8"></path>
+            </svg>
 
-    <button onclick="connectWallet()">Connect Wallet</button><br><br>
+            <h1>Yield Optimizer Vault</h1>
 
-    <input id="amount" placeholder="Amount to deposit" />
-    <button onclick="deposit()">Deposit</button>
+            <p>Connect your wallet and start optimizing your yield</p>
 
-    <button onclick="withdraw()">Withdraw</button>
+            <button id="main-connect-btn" class="primary-button">Connect Wallet</button>
 
-    <p id="status"></p>
+            <p>
+              <a href="metamask-setup.html" class="text-link">Need help setting up MetaMask?</a>
+              <br>
+              <a href="faucet.html" class="text-link">Get test tokens from faucet</a>
+            </p>
+
+            <div class="features">
+              <div class="feature-card">
+                <i class="fas fa-lock feature-icon"></i>
+                <h3>Secure Storage</h3>
+                <p>Your assets are secured by smart contracts on the blockchain</p>
+              </div>
+              <div class="feature-card">
+                <i class="fas fa-chart-line feature-icon"></i>
+                <h3>Optimized Yield</h3>
+                <p>Earn the best possible returns on your crypto assets</p>
+              </div>
+              <div class="feature-card">
+                <i class="fas fa-wallet feature-icon"></i>
+                <h3>Easy Access</h3>
+                <p>Deposit and withdraw your funds anytime with no lock-up period</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div class="screen" id="dashboard-screen">
+          <div class="container">
+            <div class="dashboard-header">
+              <h2>Your Dashboard</h2>
+              <div class="stats-row">
+                <div class="stat-card">
+                  <h3>Total Balance</h3>
+                  <p id="total-balance">--</p>
+                </div>
+                <div class="stat-card">
+                  <h3>Current APY</h3>
+                  <p id="current-apy">--</p>
+                </div>
+                <div class="stat-card">
+                  <h3>Earnings</h3>
+                  <p id="earnings">--</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-cards">
+              <div class="action-card">
+                <h3>Deposit Tokens</h3>
+                <p>Add funds to start earning yield</p>
+                <div class="action-form">
+                  <input id="amount" type="number" step="0.01" min="0" placeholder="Amount to deposit" />
+                  <button id="deposit-btn" disabled>Deposit</button>
+                </div>
+              </div>
+
+              <div class="action-card">
+                <h3>Withdraw Tokens</h3>
+                <p>Remove your funds anytime</p>
+                <div class="action-form">
+                  <p>Your deposited amount: <span id="deposited-amount">--</span></p>
+                  <button id="withdraw-btn" disabled>Withdraw All</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions Screen -->
+        <div class="screen" id="transactions-screen">
+          <div class="container">
+            <h2>Transaction History</h2>
+            <div class="transactions-list" id="transactions-container">
+              <p class="empty-state">Connect your wallet to view transaction history</p>
+              <!-- Transactions will be added here dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div class="status-container">
+          <p id="status"></p>
+        </div>
+      </main>
+
+      <footer class="app-footer">
+        <p>Powered by Ethereum &amp; Smart Contracts</p>
+        <p>© 2023 Yield Optimizer Vault</p>
+      </footer>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
     <script src="app.js"></script>

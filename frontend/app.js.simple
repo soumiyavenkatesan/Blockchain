@@ -1,0 +1,207 @@
+// Simple version of the app.js file
+document.addEventListener('DOMContentLoaded', () => {
+  const connectBtn = document.getElementById('connect-btn');
+  const depositBtn = document.getElementById('deposit-btn');
+  const withdrawBtn = document.getElementById('withdraw-btn');
+  const statusEl = document.getElementById('status');
+  const amountInput = document.getElementById('amount');
+
+  // Contract addresses from Hardhat node
+  const tokenAddress = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512';
+  const vaultAddress = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0';
+
+  // Minimal ABIs
+  const tokenAbi = [
+    "function balanceOf(address) view returns (uint256)",
+    "function approve(address, uint256) returns (bool)"
+  ];
+  
+  const vaultAbi = [
+    "function deposit(uint256)",
+    "function withdraw(uint256)",
+    "function balances(address) view returns (uint256)"
+  ];
+
+  // Global variables
+  let provider;
+  let signer;
+  let token;
+  let vault;
+  let userAddress;
+
+  // Connect wallet function
+  async function connectWallet() {
+    updateStatus('Connecting wallet...', 'loading');
+    
+    try {
+      // Check if MetaMask is installed
+      if (!window.ethereum) {
+        updateStatus('Please install MetaMask', 'error');
+        return;
+      }
+      
+      // Request accounts
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts.length === 0) {
+        updateStatus('No accounts found in MetaMask', 'error');
+        return;
+      }
+      
+      // Get network ID to verify we're on Hardhat
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId !== '0x7a69') { // 31337 in hex
+        updateStatus('Please connect to Hardhat network (Chain ID: 31337)', 'error');
+        return;
+      }
+      
+      // Setup provider and signer
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      userAddress = await signer.getAddress();
+      
+      console.log('Connected to wallet:', userAddress);
+      
+      // Initialize contracts
+      token = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      vault = new ethers.Contract(vaultAddress, vaultAbi, signer);
+      
+      // Get token balance
+      try {
+        const balance = await token.balanceOf(userAddress);
+        const formattedBalance = ethers.formatUnits(balance, 18);
+        
+        // Format the address for display
+        const formattedAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+        updateStatus(`Connected: ${formattedAddress} (Balance: ${formattedBalance} TST)`, 'connected');
+        
+        // Enable buttons
+        if (depositBtn) depositBtn.disabled = false;
+        if (withdrawBtn) withdrawBtn.disabled = false;
+      } catch (balanceError) {
+        console.error('Error getting balance:', balanceError);
+        updateStatus(`Connected to ${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}, but couldn't get token balance`, 'error');
+      }
+      
+      // Listen for account changes
+      window.ethereum.on('accountsChanged', () => {
+        window.location.reload();
+      });
+      
+      // Listen for network changes
+      window.ethereum.on('chainChanged', () => {
+        window.location.reload();
+      });
+    } catch (err) {
+      console.error('Wallet connection error:', err);
+      updateStatus('Failed to connect wallet: ' + (err.reason || err.message || 'Unknown error'), 'error');
+    }
+  }
+
+  // Deposit function
+  async function deposit() {
+    if (!userAddress) {
+      updateStatus('Please connect your wallet first', 'error');
+      return;
+    }
+
+    const amount = amountInput.value;
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      updateStatus('Please enter a valid amount', 'error');
+      return;
+    }
+
+    updateStatus(`Processing deposit of ${amount} tokens...`, 'loading');
+
+    try {
+      // Check user's token balance
+      const balance = await token.balanceOf(userAddress);
+      const amountInWei = ethers.parseUnits(amount, 18);
+      
+      if (balance < amountInWei) {
+        updateStatus(`Insufficient balance. You have ${ethers.formatUnits(balance, 18)} TST`, 'error');
+        return;
+      }
+
+      // Approve Vault to spend user's token
+      updateStatus('Approving token transfer...', 'loading');
+      const approveTx = await token.approve(vaultAddress, amountInWei);
+      await approveTx.wait();
+      console.log('Approval transaction confirmed');
+
+      // Deposit to vault
+      updateStatus('Depositing tokens...', 'loading');
+      const tx = await vault.deposit(amountInWei);
+      await tx.wait();
+      console.log('Deposit transaction confirmed');
+
+      // Get updated balance
+      const newBalance = await token.balanceOf(userAddress);
+      const formattedBalance = ethers.formatUnits(newBalance, 18);
+
+      updateStatus(`Successfully deposited ${amount} tokens! New balance: ${formattedBalance} TST`, 'connected');
+      amountInput.value = ''; // Clear the input field
+    } catch (err) {
+      console.error('Deposit error:', err);
+      updateStatus('Transaction failed: ' + (err.reason || err.message || 'Unknown error'), 'error');
+    }
+  }
+
+  // Withdraw function
+  async function withdraw() {
+    if (!userAddress) {
+      updateStatus('Please connect your wallet first', 'error');
+      return;
+    }
+
+    updateStatus('Processing withdrawal...', 'loading');
+
+    try {
+      // Get user's vault balance
+      const vaultBalance = await vault.balances(userAddress);
+      
+      if (vaultBalance.toString() === '0') {
+        updateStatus('You don\'t have any tokens in the vault to withdraw', 'error');
+        return;
+      }
+
+      // Withdraw from vault
+      const tx = await vault.withdraw(vaultBalance);
+      await tx.wait();
+      console.log('Withdrawal transaction confirmed');
+
+      // Get updated token balance
+      const newBalance = await token.balanceOf(userAddress);
+      const formattedBalance = ethers.formatUnits(newBalance, 18);
+
+      updateStatus(`Withdrawal successful! New balance: ${formattedBalance} TST`, 'connected');
+    } catch (err) {
+      console.error('Withdrawal error:', err);
+      updateStatus('Withdrawal failed: ' + (err.reason || err.message || 'Unknown error'), 'error');
+    }
+  }
+
+  // Helper function to update status with styling
+  function updateStatus(message, type = '') {
+    statusEl.innerText = message;
+    
+    // Remove all status classes
+    statusEl.classList.remove('loading', 'connected', 'error');
+    
+    // Add the appropriate class
+    if (type) {
+      statusEl.classList.add(type);
+    }
+  }
+
+  // Add event listeners
+  if (connectBtn) connectBtn.addEventListener('click', connectWallet);
+  if (depositBtn) depositBtn.addEventListener('click', deposit);
+  if (withdrawBtn) withdrawBtn.addEventListener('click', withdraw);
+  
+  // Check if MetaMask is installed
+  if (window.ethereum) {
+    updateStatus('Ready to connect wallet', '');
+  } else {
+    updateStatus('Please install MetaMask', 'error');
+  }
+});

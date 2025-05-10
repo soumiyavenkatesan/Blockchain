@@ -2,30 +2,48 @@ const hre = require("hardhat");
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  console.log("Deploying contracts with the account:", deployer.address);
 
+  // Deploy TestToken
   const Token = await hre.ethers.getContractFactory("TestToken");
   const token = await Token.deploy();
-  await token.deployed();
+  await token.waitForDeployment();
+  const tokenAddress = await token.getAddress();
+  console.log("Token deployed to:", tokenAddress);
 
+  // Deploy Vault
   const Vault = await hre.ethers.getContractFactory("Vault");
-  const vault = await Vault.deploy(token.address);
-  await vault.deployed();
+  const vault = await Vault.deploy(tokenAddress);
+  await vault.waitForDeployment();
+  const vaultAddress = await vault.getAddress();
+  console.log("Vault deployed to:", vaultAddress);
 
+  // Deploy StrategyA
   const StrategyA = await hre.ethers.getContractFactory("StrategyA");
-  const strategyA = await StrategyA.deploy(vault.address);
-  await strategyA.deployed();
+  const strategyA = await StrategyA.deploy(vaultAddress);
+  await strategyA.waitForDeployment();
+  const strategyAAddress = await strategyA.getAddress();
+  console.log("StrategyA deployed to:", strategyAAddress);
 
+  // Deploy StrategyB
   const StrategyB = await hre.ethers.getContractFactory("StrategyB");
-  const strategyB = await StrategyB.deploy(vault.address);
-  await strategyB.deployed();
+  const strategyB = await StrategyB.deploy(vaultAddress);
+  await strategyB.waitForDeployment();
+  const strategyBAddress = await strategyB.getAddress();
 
-  await vault.addStrategy(strategyA.address);
-  await vault.addStrategy(strategyB.address);
+  // Add strategies to vault
+  console.log("Adding strategies to vault...");
+  await vault.addStrategy(strategyAAddress);
+  await vault.addStrategy(strategyBAddress);
+  console.log("Strategies added to vault");
 
-  console.log("Vault deployed to:", vault.address);
-  console.log("StrategyA deployed to:", strategyA.address);
-  console.log("StrategyB deployed to:", strategyB.address);
-  console.log("Token deployed to:", token.address);
+  // Update frontend app.js with contract addresses
+  console.log("\nDeployment Summary:");
+  console.log("-------------------");
+  console.log("Token:", tokenAddress);
+  console.log("Vault:", vaultAddress);
+  console.log("StrategyA:", strategyAAddress);
+  console.log("StrategyB:", strategyBAddress);
 }
 
 main().catch((error) => {

@@ -1,0 +1,289 @@
+// Contract addresses
+const vaultAddress = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853";
+const tokenAddress = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+
+// UI Elements
+const statusEl = document.getElementById("status");
+const amountInput = document.getElementById("amount");
+const connectBtn = document.getElementById("connect-btn");
+const depositBtn = document.getElementById("deposit-btn");
+const withdrawBtn = document.getElementById("withdraw-btn");
+
+// Global variables
+let provider;
+let signer;
+let vault;
+let token;
+let userAddress;
+
+// Vault ABI - minimal version with just the functions we need
+const vaultAbi = [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "balances",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
+// Token ABI - minimal version with just the functions we need
+const tokenAbi = [
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "approve",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
+// Initialize the app
+document.addEventListener('DOMContentLoaded', () => {
+  // Add event listeners
+  if (connectBtn) connectBtn.addEventListener('click', connectWallet);
+  if (depositBtn) depositBtn.addEventListener('click', deposit);
+  if (withdrawBtn) withdrawBtn.addEventListener('click', withdraw);
+  
+  // Check if MetaMask is installed
+  if (window.ethereum) {
+    updateStatus("Ready to connect wallet", "");
+  } else {
+    updateStatus("Please install MetaMask", "error");
+  }
+});
+
+// Connect wallet function
+async function connectWallet() {
+  updateStatus("Connecting wallet...", "loading");
+
+  try {
+    // Request account access
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    
+    // Setup provider and signer
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    userAddress = await signer.getAddress();
+    
+    console.log("Connected to wallet:", userAddress);
+    
+    // Initialize contracts
+    try {
+      vault = new ethers.Contract(vaultAddress, vaultAbi, signer);
+      token = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      
+      // Get token balance
+      const balance = await token.balanceOf(userAddress);
+      const formattedBalance = ethers.formatUnits(balance, 18);
+      
+      // Format the address for display
+      const formattedAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(userAddress.length - 4)}`;
+      updateStatus(`Connected: ${formattedAddress} (Balance: ${formattedBalance} TST)`, "connected");
+      
+      // Enable buttons
+      if (depositBtn) depositBtn.disabled = false;
+      if (withdrawBtn) withdrawBtn.disabled = false;
+      
+      // Listen for account changes
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length === 0) {
+          updateStatus("Wallet disconnected", "error");
+          if (depositBtn) depositBtn.disabled = true;
+          if (withdrawBtn) withdrawBtn.disabled = true;
+        } else {
+          connectWallet();
+        }
+      });
+    } catch (contractError) {
+      console.error("Contract initialization error:", contractError);
+      updateStatus("Failed to initialize contracts: " + (contractError.reason || contractError.message), "error");
+    }
+  } catch (err) {
+    console.error("Wallet connection error:", err);
+    updateStatus("Failed to connect wallet: " + (err.reason || err.message || "Unknown error"), "error");
+  }
+}
+
+// Deposit function
+async function deposit() {
+  if (!userAddress) {
+    updateStatus("Please connect your wallet first", "error");
+    return;
+  }
+
+  const amount = amountInput.value;
+  if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    updateStatus("Please enter a valid amount", "error");
+    return;
+  }
+
+  updateStatus(`Processing deposit of ${amount} tokens...`, "loading");
+
+  try {
+    // Check user's token balance
+    const balance = await token.balanceOf(userAddress);
+    const amountInWei = ethers.parseUnits(amount, 18);
+    
+    if (balance < amountInWei) {
+      updateStatus(`Insufficient balance. You have ${ethers.formatUnits(balance, 18)} TST`, "error");
+      return;
+    }
+
+    // Approve Vault to spend user's token
+    updateStatus("Approving token transfer...", "loading");
+    const approveTx = await token.approve(vaultAddress, amountInWei);
+    await approveTx.wait();
+    console.log("Approval transaction confirmed");
+
+    // Deposit to vault
+    updateStatus("Depositing tokens...", "loading");
+    const tx = await vault.deposit(amountInWei);
+    await tx.wait();
+    console.log("Deposit transaction confirmed");
+
+    // Get updated balance
+    const newBalance = await token.balanceOf(userAddress);
+    const formattedBalance = ethers.formatUnits(newBalance, 18);
+
+    updateStatus(`Successfully deposited ${amount} tokens! New balance: ${formattedBalance} TST`, "connected");
+    amountInput.value = ""; // Clear the input field
+  } catch (err) {
+    console.error("Deposit error:", err);
+    updateStatus("Transaction failed: " + (err.reason || err.message || "Unknown error"), "error");
+  }
+}
+
+// Withdraw function
+async function withdraw() {
+  if (!userAddress) {
+    updateStatus("Please connect your wallet first", "error");
+    return;
+  }
+
+  updateStatus("Processing withdrawal...", "loading");
+
+  try {
+    // Get user's vault balance
+    const vaultBalance = await vault.balances(userAddress);
+    
+    if (vaultBalance.toString() === "0") {
+      updateStatus("You don't have any tokens in the vault to withdraw", "error");
+      return;
+    }
+
+    // Withdraw from vault
+    const tx = await vault.withdraw(vaultBalance);
+    await tx.wait();
+    console.log("Withdrawal transaction confirmed");
+
+    // Get updated token balance
+    const newBalance = await token.balanceOf(userAddress);
+    const formattedBalance = ethers.formatUnits(newBalance, 18);
+
+    updateStatus(`Withdrawal successful! New balance: ${formattedBalance} TST`, "connected");
+  } catch (err) {
+    console.error("Withdrawal error:", err);
+    updateStatus("Withdrawal failed: " + (err.reason || err.message || "Unknown error"), "error");
+  }
+}
+
+// Helper function to update status with styling
+function updateStatus(message, type = "") {
+  statusEl.innerText = message;
+  
+  // Remove all status classes
+  statusEl.classList.remove("loading", "connected", "error");
+  
+  // Add the appropriate class
+  if (type) {
+    statusEl.classList.add(type);
+  }
+}

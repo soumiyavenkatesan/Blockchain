@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MetaMask Setup Guide</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      .guide-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      
+      .step {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      
+      .step h3 {
+        color: var(--primary-color);
+        margin-top: 0;
+      }
+      
+      .step-number {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 30px;
+        margin-right: 10px;
+      }
+      
+      .code {
+        background-color: #f1f1f1;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        margin: 10px 0;
+      }
+      
+      .important {
+        color: #d63031;
+        font-weight: bold;
+      }
+      
+      .back-button {
+        margin-top: 2rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="guide-container">
+      <h1>Setting Up MetaMask for Hardhat Network</h1>
+      
+      <div class="step">
+        <h3><span class="step-number">1</span>Install MetaMask</h3>
+        <p>If you haven't already, install the MetaMask extension for your browser from <a href="https://metamask.io/download/" target="_blank">metamask.io</a>.</p>
+      </div>
+      
+      <div class="step">
+        <h3><span class="step-number">2</span>Add Hardhat Network to MetaMask</h3>
+        <p>Open MetaMask and follow these steps:</p>
+        <ol>
+          <li>Click on the network dropdown at the top (it might say "Ethereum Mainnet")</li>
+          <li>Click "Add network"</li>
+          <li>Click "Add a network manually"</li>
+          <li>Fill in the following details:
+            <div class="code">
+              Network Name: Hardhat<br>
+              New RPC URL: http://127.0.0.1:8545<br>
+              Chain ID: 31337<br>
+              Currency Symbol: ETH<br>
+              Block Explorer URL: (leave blank)
+            </div>
+          </li>
+          <li>Click "Save"</li>
+        </ol>
+      </div>
+      
+      <div class="step">
+        <h3><span class="step-number">3</span>Import a Test Account</h3>
+        <p>To interact with the contracts, you need to import one of the test accounts:</p>
+        <ol>
+          <li>In MetaMask, click on your account icon in the top-right corner</li>
+          <li>Select "Import account"</li>
+          <li>Enter the following private key:
+            <div class="code">
+              0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+            </div>
+          </li>
+          <li>Click "Import"</li>
+        </ol>
+        <p class="important">IMPORTANT: This is a test account with a publicly known private key. NEVER use this account on mainnet or any public network!</p>
+      </div>
+      
+      <div class="step">
+        <h3><span class="step-number">4</span>Verify Connection</h3>
+        <p>After importing the account:</p>
+        <ol>
+          <li>Make sure "Hardhat" is selected in the network dropdown</li>
+          <li>You should see a balance of 10,000 ETH</li>
+          <li>Return to the Yield Optimizer app and click "Connect Wallet"</li>
+          <li>You should now be able to interact with the contracts</li>
+        </ol>
+      </div>
+      
+      <div class="back-button">
+        <a href="index.html"><button>Back to App</button></a>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Yield Optimizer DApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M16 12l-4-4-4 4"></path>
+        <path d="M12 16V8"></path>
+      </svg>
+      
+      <h1>Yield Optimizer Vault</h1>
+      
+      <p>Connect your wallet and start optimizing your yield</p>
+      
+      <button id="connect-btn">Connect Wallet</button>
+      
+      <div class="action-row">
+        <input id="amount" placeholder="Amount to deposit" />
+        <button id="deposit-btn" disabled>Deposit</button>
+      </div>
+      
+      <button id="withdraw-btn" disabled>Withdraw All</button>
+      
+      <p id="status"></p>
+      
+      <div class="footer">
+        Powered by Ethereum &amp; Smart Contracts
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
